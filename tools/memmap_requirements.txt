@@ -1,0 +1,4 @@
+# Dependencies for tools/memmap.py.
+PyYAML>=5.1
+prettytable>=0.7.2
+Jinja2>=2.10

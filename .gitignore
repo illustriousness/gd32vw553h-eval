@@ -1,0 +1,9 @@
+build/
+/.cache
+__pycache__/
+*.o
+out/
+/.sconsign.dblite
+/.config.old
+
+/packages

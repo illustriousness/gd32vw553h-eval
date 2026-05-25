@@ -1,0 +1,175 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "clangd.arguments": [
+            "--compile-commands-dir=build",
+            "--header-insertion=never"
+        ],
+        "files.exclude": {
+            "packages/SEGGER_RTT-latest/.git": true,
+            "packages/SEGGER_RTT-latest/.github": true,
+            "packages/SEGGER_RTT-latest/images": true,
+            "packages/at24cxx-latest/.git": true,
+            "packages/gd32-riscv-series-latest/.git": true,
+            "packages/gd32-riscv-series-latest/GD32VW55x/RISCV/env_IAR": true,
+            "packages/gd32-riscv-series-latest/GD32VW55x/RISCV/env_SES": true,
+            "packages/gd32-riscv-series-latest/GD32VW55x/RISCV/stubs": true,
+            "packages/gd32vw55x-wifi-latest/.git": true,
+            "packages/gd32vw55x-wifi-latest/lib": true,
+            "packages/gd32vw55x-wifi-latest/port": true,
+            "packages/gd32vw55x-wifi-latest/rom_export/mbedtls-2.17.0-rom": true,
+            "packages/gd32vw55x-wifi-latest/rom_export/symbol": true,
+            "packages/gd32vw55x-wifi-latest/src/lwip/port/httpd_resource": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/.github": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/3rdparty": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/ChangeLog.d": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/cmake": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/configs": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/docs": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/doxygen": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/include/mbedtls": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/include/psa": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/pkgconfig": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/programs": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/scripts": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/tests": true,
+            "packages/gd32vw55x-wifi-latest/src/mbedtls/mbedtls/visualc": true,
+            "packages/gd32vw55x-wifi-latest/src/plf/riscv/NMSIS/Core": true,
+            "packages/gd32vw55x-wifi-latest/src/plf/riscv/NMSIS/DSP/Include/dsp": true,
+            "packages/gd32vw55x-wifi-latest/src/plf/riscv/NMSIS/Library": true,
+            "packages/gd32vw55x-wifi-latest/src/plf/riscv/env": true,
+            "packages/lwip-latest": true,
+            // "build":true
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/bower_components": true,
+            "**/*.code-search": true,
+            // "**/build":true
+        }
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "GD32VW553H Debug (OpenOCD GD-Link)",
+                "cwd": "${workspaceFolder}",
+                "executable": "${workspaceFolder}/build/rtthread.elf",
+                "request": "launch",
+                // "request": "attach",
+                "type": "cortex-debug",
+                "servertype": "openocd",
+                "serverpath": "openocd",
+                "configFiles": [
+                    "${workspaceFolder}/openocd_gdlink.cfg"
+                ],
+                "preLaunchTask": "SCons: Build",
+                "runToEntryPoint": "main",
+                "showDevDebugOutput": "raw",
+                "gdbPath": "${workspaceFolder}/scripts/riscv-gdb.sh",
+                "objdumpPath": "/usr/bin/riscv64-unknown-elf-objdump"
+            },
+            {
+                "cwd": "${workspaceFolder}",
+                "type": "cortex-debug",
+                "request": "launch",
+                "name": "Debug: JLINK",
+                "servertype": "jlink",
+                "interface": "jtag",
+                "executable": "${workspaceFolder}/build/rtthread.elf",
+                "runToEntryPoint": "main",
+                // "runToEntryPoint": "Reset_Handler",
+                "liveWatch": {
+                    "enabled": true,
+                    "samplesPerSecond": 10
+                },
+                "device": "GD32VW553HMQ7",
+                // "svdFile": "${workspaceFolder}/board/debug/GD32F30x_XD.svd"
+            }
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "SCons: Build",
+                "type": "shell",
+                "command": "scons",
+                "args": [
+                    "--cdb",
+                    "-j32"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                },
+                "presentation": {
+                    "close": true
+                }
+            },
+            {
+                "label": "Download",
+                "type": "shell",
+                "command": "python3",
+                "args": [
+                    "tools/flash_jlink.py",
+                    "--interface",
+                    "JTAG",
+                    "--device",
+                    "GD32VW553HMQ7",
+                    "--file",
+                    "build/rtthread.bin",
+                    "--bin-addr",
+                    "0x08000000"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": []
+            },
+            {
+                "label": "OpenOCD: Debug Server (GD-Link)",
+                "type": "shell",
+                "command": "openocd",
+                "args": [
+                    "-f",
+                    "${workspaceFolder}/openocd_gdlink.cfg"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": []
+            },
+            {
+                "label": "OpenOCD: Flash rtthread.elf",
+                "type": "shell",
+                "command": "${workspaceFolder}/scripts/openocd-flash-elf.sh",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": []
+            },
+            {
+                "label": "GDB: Load rtthread.elf",
+                "type": "shell",
+                "command": "${workspaceFolder}/scripts/riscv-gdb.sh",
+                "args": [
+                    "-q",
+                    "-batch",
+                    "-ex",
+                    "file ${workspaceFolder}/build/rtthread.elf",
+                    "-ex",
+                    "info files"
+                ],
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                },
+                "problemMatcher": []
+            }
+        ]
+    }
+}

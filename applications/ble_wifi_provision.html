@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GD32VW553H BLE WiFi 配网</title>
+  <style>
+    body {
+      max-width: 720px;
+      margin: 32px auto;
+      padding: 0 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: 600;
+    }
+    input, button, pre {
+      width: 100%;
+      box-sizing: border-box;
+      font: inherit;
+    }
+    input {
+      margin-top: 6px;
+      padding: 8px;
+    }
+    button {
+      margin-top: 16px;
+      padding: 10px 12px;
+    }
+    pre {
+      min-height: 180px;
+      margin-top: 16px;
+      padding: 12px;
+      overflow: auto;
+      background: #111;
+      color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>GD32VW553H BLE WiFi 配网</h1>
+  <p>使用 Chrome/Edge 打开本页，点击“扫描并连接”，选择 <code>GD32VW553H</code> 后发送 WiFi 凭据。</p>
+
+  <button id="connect">扫描并连接 BLE</button>
+
+  <label for="ssid">SSID</label>
+  <input id="ssid" autocomplete="off" placeholder="请输入 WiFi SSID">
+
+  <label for="password">密码</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="请输入 WiFi 密码">
+
+  <button id="send" disabled>发送 JSON 配网</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    const SERVICE_UUID = '00000101-0000-1000-8000-00805f9b34fb';
+    const RX_UUID = '00000102-0000-1000-8000-00805f9b34fb';
+    const TX_UUID = '00000103-0000-1000-8000-00805f9b34fb';
+    const CHUNK_SIZE = 20;
+
+    let device;
+    let rxCharacteristic;
+
+    const $ = (id) => document.getElementById(id);
+    const log = (message) => {
+      $('log').textContent += `${new Date().toLocaleTimeString()} ${message}\n`;
+      $('log').scrollTop = $('log').scrollHeight;
+    };
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function writeChunks(characteristic, bytes) {
+      for (let offset = 0; offset < bytes.length; offset += CHUNK_SIZE) {
+        const chunk = bytes.slice(offset, offset + CHUNK_SIZE);
+        if (characteristic.writeValueWithResponse) {
+          await characteristic.writeValueWithResponse(chunk);
+        } else {
+          await characteristic.writeValue(chunk);
+        }
+        await sleep(30);
+      }
+    }
+
+    $('connect').addEventListener('click', async () => {
+      try {
+        if (!navigator.bluetooth) {
+          throw new Error('当前浏览器不支持 Web Bluetooth，请使用 Chrome/Edge 并通过 localhost 或 HTTPS 打开页面');
+        }
+
+        log('开始扫描 BLE 设备');
+        device = await navigator.bluetooth.requestDevice({
+          filters: [{ namePrefix: 'GD32VW553H' }],
+          optionalServices: [SERVICE_UUID],
+        });
+        device.addEventListener('gattserverdisconnected', () => {
+          $('send').disabled = true;
+          log('BLE 已断开');
+        });
+
+        log(`连接 ${device.name || device.id}`);
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        rxCharacteristic = await service.getCharacteristic(RX_UUID);
+        const txCharacteristic = await service.getCharacteristic(TX_UUID);
+        await txCharacteristic.startNotifications();
+        txCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+          const text = new TextDecoder().decode(event.target.value);
+          log(`MCU: ${text.trimEnd()}`);
+        });
+
+        $('send').disabled = false;
+        log('BLE 已连接，可发送配网 JSON');
+      } catch (error) {
+        log(`连接失败: ${error.message}`);
+      }
+    });
+
+    $('send').addEventListener('click', async () => {
+      try {
+        if (!rxCharacteristic) {
+          throw new Error('BLE 尚未连接');
+        }
+
+        const ssid = $('ssid').value;
+        const pwd = $('password').value;
+        if (!ssid) {
+          throw new Error('SSID 不能为空');
+        }
+
+        const payload = JSON.stringify({ ssid, pwd }) + '\n';
+        log(`发送: ${payload.trimEnd()}`);
+        await writeChunks(rxCharacteristic, new TextEncoder().encode(payload));
+        log('发送完成，等待 MCU 连接 WiFi');
+      } catch (error) {
+        log(`发送失败: ${error.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

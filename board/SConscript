@@ -1,0 +1,126 @@
+import os
+import rtconfig
+from building import *
+
+Import('SDK_LIB')
+Import('RTT_ROOT')
+
+cwd = GetCurrentDir()
+bsp_root = os.path.dirname(cwd)
+CPPDEFINES = ['GD32VW553H_EVAL']
+
+
+def get_lwip_include_paths():
+    lwip_root = os.path.join(RTT_ROOT, 'components', 'net', 'lwip')
+
+    if GetDepend(['RT_USING_LWIP212']):
+        lwip_dir = os.path.join(lwip_root, 'lwip-2.1.2')
+        lwip_path = [
+            os.path.join(lwip_dir, 'src', 'include'),
+            os.path.join(lwip_dir, 'src', 'include', 'netif'),
+        ]
+        if not GetDepend('RT_USING_SAL'):
+            lwip_path.append(os.path.join(lwip_dir, 'src', 'include', 'compat', 'posix'))
+        return lwip_path
+
+    if GetDepend(['RT_USING_LWIP203']):
+        lwip_dir = os.path.join(lwip_root, 'lwip-2.0.3')
+        lwip_path = [
+            os.path.join(lwip_dir, 'src', 'include'),
+            os.path.join(lwip_dir, 'src', 'include', 'ipv4'),
+            os.path.join(lwip_dir, 'src', 'include', 'netif'),
+        ]
+        if not GetDepend('RT_USING_SAL'):
+            lwip_path.append(os.path.join(lwip_dir, 'src', 'include', 'posix'))
+        return lwip_path
+
+    if GetDepend(['RT_USING_LWIP141']):
+        lwip_dir = os.path.join(lwip_root, 'lwip-1.4.1')
+        return [
+            os.path.join(lwip_dir, 'src', 'include'),
+            os.path.join(lwip_dir, 'src', 'include', 'ipv4'),
+            os.path.join(lwip_dir, 'src', 'include', 'netif'),
+        ]
+
+    return []
+
+# add general drivers
+src = Split('''
+board.c
+trap_gcc.S
+''')
+path = [cwd]
+
+# add WiFi driver
+if GetDepend(['BSP_USING_WLAN']):
+    wifi_src = ['drv_wlan.c', 'wifi.c', 'gd32vw55x_dma_bsp.c']
+    ble_pkg_dir = os.path.join(bsp_root, 'packages', 'gd32vw55x-ble')
+    ble_sdk_dir = os.path.join(ble_pkg_dir, 'GD32VW55x_RELEASE_V1.0.3g')
+    ble_msdk_dir = os.path.join(ble_sdk_dir, 'MSDK')
+    lwip_port_dir = os.path.join(ble_msdk_dir, 'lwip', 'lwip-2.2.0', 'port')
+    wifi_local_path = [
+        os.path.join(ble_msdk_dir, 'macsw', 'export'),
+        os.path.join(ble_msdk_dir, 'macsw', 'import'),
+        os.path.join(ble_msdk_dir, 'wifi_manager'),
+        os.path.join(ble_msdk_dir, 'rtos', 'rtos_wrapper'),
+        lwip_port_dir,
+        os.path.join(lwip_port_dir, 'arch'),
+        os.path.join(ble_msdk_dir, 'mbedtls', 'mbedtls-2.17.0-ssl', 'include'),
+        os.path.join(ble_msdk_dir, 'wifi_manager', 'wpas'),
+        os.path.join(ble_pkg_dir, 'ble', 'adapter'),
+        os.path.join(ble_pkg_dir, 'wifi', 'adapter'),
+        os.path.join(ble_msdk_dir, 'rtos', 'rtos_wrapper'),
+        os.path.join(ble_msdk_dir, 'util', 'include'),
+        os.path.join(ble_msdk_dir, 'plf', 'src'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'dma'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'nvds'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'raw_flash'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'reg'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'rf'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'time'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'trng'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'uart'),
+        os.path.join(ble_msdk_dir, 'plf', 'src', 'wdt'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'arch'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'arch', 'boot'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'arch', 'compiler'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'arch', 'll'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'gd32vw55x'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'NMSIS', 'Core', 'Include'),
+        os.path.join(ble_msdk_dir, 'plf', 'riscv', 'NMSIS', 'DSP', 'Include'),
+        os.path.join(ble_sdk_dir, 'ROM-EXPORT', 'bootloader'),
+        os.path.join(ble_sdk_dir, 'ROM-EXPORT', 'halcomm'),
+        os.path.join(ble_sdk_dir, 'config'),
+    ]
+    wifi_local_path += get_lwip_include_paths()
+    wifi_local_ccflags = ' -I%s -I%s' % (
+        lwip_port_dir,
+        os.path.join(lwip_port_dir, 'arch'),
+    )
+
+# add startup txt path
+startup_path_prefix = os.getcwd() + '/../'
+
+if rtconfig.PLATFORM in ['gcc']:
+    # Use standard peripheral library startup files for compatibility
+    src += [startup_path_prefix + '/packages/gd32-riscv-series-latest/GD32VW55x/RISCV/env_Eclipse/start.S']
+    src += [startup_path_prefix + '/packages/gd32-riscv-series-latest/GD32VW55x/RISCV/env_Eclipse/entry.S']
+
+group = DefineGroup('Drivers', src, depend = [''], CPPPATH = path, CPPDEFINES = CPPDEFINES)
+
+if GetDepend(['BSP_USING_WLAN']):
+    group = group + DefineGroup(
+        'Drivers',
+        wifi_src,
+        depend=['BSP_USING_WLAN'],
+        LOCAL_CPPPATH=wifi_local_path,
+        LOCAL_CCFLAGS=wifi_local_ccflags,
+        CPPDEFINES=CPPDEFINES,
+    )
+
+list = os.listdir(cwd)
+for item in list:
+    if os.path.isfile(os.path.join(cwd, item, 'SConscript')):
+        group = group + SConscript(os.path.join(item, 'SConscript'))
+
+Return('group')

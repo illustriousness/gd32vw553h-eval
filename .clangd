@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build
+  Add:
+    - --target=riscv32-unknown-elf

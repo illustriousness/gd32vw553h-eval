@@ -1,0 +1,12 @@
+[
+ {
+  "name": "SEGGER_RTT",
+  "path": "/packages/tools/SEGGER_RTT",
+  "ver": "latest"
+ },
+ {
+  "name": "GD32_RISCV_SERIES_DRIVER",
+  "path": "/packages/peripherals/hal-sdk/gd32/gd32-riscv-series",
+  "ver": "latest"
+ }
+]

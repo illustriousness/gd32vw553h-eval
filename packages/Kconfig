@@ -1,0 +1,2 @@
+rsource "SEGGER_RTT-latest/Kconfig"
+rsource "gd32vw55x-ble/Kconfig"

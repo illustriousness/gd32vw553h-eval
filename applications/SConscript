@@ -1,0 +1,21 @@
+Import('RTT_ROOT')
+Import('rtconfig')
+import os
+from building import *
+
+cwd = GetCurrentDir()
+src = Glob('*.c')
+CPPPATH = [cwd, ]
+
+if GetDepend(['PKG_USING_GD32VW55X_BLE']):
+    bsp_root = str(Dir('#'))
+    ble_pkg_dir = os.path.join(bsp_root, 'packages', 'gd32vw55x-ble')
+    ble_msdk_dir = os.path.join(ble_pkg_dir, 'GD32VW55x_RELEASE_V1.0.3g', 'MSDK')
+    CPPPATH += [
+        os.path.join(ble_pkg_dir, 'ble', 'include'),
+        os.path.join(ble_msdk_dir, 'util', 'include'),
+    ]
+
+group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
+
+Return('group')

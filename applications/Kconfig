@@ -1,0 +1,12 @@
+menu "Applications"
+
+config SEGGER_RTT_SECTION
+    string "SEGGER RTT control block section"
+    depends on PKG_USING_SEGGER_RTT && SEGGER_RTT_ENABLE
+    default ".bss.segger_rtt"
+    help
+        Place the SEGGER RTT control block in a named BSS subsection so the
+        linker script can keep it near the beginning of SRAM for J-Link RTT
+        auto-detection.
+
+endmenu

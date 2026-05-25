@@ -1,0 +1,9 @@
+[submodule "packages/SEGGER_RTT-latest"]
+	path = packages/SEGGER_RTT-latest
+	url = https://github.com/supperthomas/RTTHREAD_SEGGER_TOOL.git
+[submodule "packages/gd32-riscv-series-latest"]
+	path = packages/gd32-riscv-series-latest
+	url = https://github.com/RT-Thread-packages/gd32-risc-v-series.git
+[submodule "packages/gd32vw55x-ble"]
+	path = packages/gd32vw55x-ble
+	url = https://github.com/illustriousness/gd32vw55x-ble.git
